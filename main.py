@@ -8,7 +8,7 @@ This this the starting function of the project. Here the Game class is created a
 import pygame
 import sys
 
-from py_modules.graph import Post #, Train, Dispatcher
+from py_modules.graph import Post, Train, Dispatcher
 from py_modules.make_planar import create_graph
 from py_modules.connector import Connector
 
@@ -57,37 +57,27 @@ class Game:
             posts[post['idx']] = points[post['point_idx']]
         subgraph.posts = posts
 
-        # trains = {train['idx']: Train(train) for train in player_info['trains']}
-        # subgraph.trains = trains
-        # for train in trains.values():
-        #     train.set_line(lines[train.line_idx])
-        # disp = Dispatcher(subgraph)
-        # ret = 1
-
+        trains = {train['idx']: Train(train) for train in player_info['trains']}
+        subgraph.trains = trains
+        for train in trains.values():
+            train.set_line(lines[train.line_idx])
+        disp = Dispatcher(subgraph, connector)
+        disp.prepare()
         while self.running:
             self.clock.tick(120)
             for event in pygame.event.get():
-                # if event.type == pygame.KEYDOWN:
+                if event.type == pygame.KEYDOWN:
                 #     if event.key == pygame.K_u:
                 #         connector.upgrade()
-                #     if event.key == pygame.K_SPACE:
-                #         if ret:
-                #             if disp.move_train_to_point(352, 1, connector):
-                #                 ret = 0
-                #                 disp.move_train_to_point(356, 1, connector)
-                #         else:
-                #             if disp.move_train_to_point(356, 1, connector):
-                #                 ret = 1
-                #                 disp.move_train_to_point(349, 1, connector)
-                #         info = connector.get_info()
-                #         if info is None:
-                #             info = connector.get_info()
-                #         self.update_map(posts, info)
+                    if event.key == pygame.K_SPACE:
+                        disp.do_tasks()
+                        info = connector.get_info()
+                        self.update_map(posts, info)
                 #         subgraph.rating = info['ratings'][player_idx]['rating']
-                #         if self.selected is not None:
-                #             self.selected.draw(self.image, self.sc)
-                #         for train in trains.values():
-                #             train.update(info['trains'][0])
+                        if self.selected is not None:
+                            self.selected.draw(self.image, self.sc)
+                        for train in trains.values():
+                            train.update(info['trains'][0])
 
                 if event.type == pygame.QUIT:
                     connector.close_conn()
@@ -132,7 +122,6 @@ class Game:
                         point.selected = True
                         return point
         return None
-
 
     def update_map(self, posts, info):
         for post in info['posts']:

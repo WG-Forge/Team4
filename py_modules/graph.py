@@ -5,7 +5,7 @@ import random
 
 import pygame
 
-# from graphModule import getOptimalPath
+from graphModule import getOptimalPath
 
 screen_width = 1600
 screen_height = 900
@@ -88,7 +88,7 @@ class Line:
 
     def draw(self, screen):
         # font = pygame.font.SysFont('arial', 10)
-        # text = font.render(str(self.length), True, WHITE)
+        # text = font.render(str(self.idx), True, WHITE)
         #
         # coordinates = [0, 0]
         # coordinates[0] = (self.points[0].coordinates[0] + self.points[1].coordinates[0]) / 2
@@ -159,9 +159,9 @@ class Graph:
         for point in self.points.values():
             point.draw(surface, screen)
         # self.display_rating(screen)
-        # for train in self.trains.values():
-        #     train.set_line(self.lines[train.line_idx])
-        #     train.draw(screen, surface)
+        for train in self.trains.values():
+            train.set_line(self.lines[train.line_idx])
+            train.draw(screen, surface)
 
     def change_face(self, alpha_path: list, face_index: int):
         edges = self.faces[face_index].get_edges(alpha_path[0], alpha_path[-1])
@@ -256,139 +256,218 @@ class Post:
             self.armor = (post_dict['armor'], post_dict['armor_capacity'])
 
 
-# class Train:
-#     def __init__(self, train_dict: dict):
-#         self.idx = train_dict['idx']
-#         # self.fuel = (train_dict['fuel'], train_dict['fuel_capacity'])
-#         self.goods = (train_dict['goods'], train_dict['goods_capacity'])
-#         self.line_idx = train_dict['line_idx']
-#         self.position = train_dict['position']
-#         self.speed = train_dict['speed']
-#         self.line = None
-#         self.coordinates = [0, 0]
-#
-#     def set_line(self, line: Line):
-#         self.line = line
-#
-#     def draw(self, screen, surface):
-#         pygame.draw.rect(screen, BLACK, (1400, 0, 100, 100), 0)
-#         font = pygame.font.SysFont('arial', 20)
-#         text = font.render(
-#             str(self.line_idx) + ' ' + str(self.line.points[0].idx) + ' ' + '{0}/{1}'.format(self.position,
-#                                                                                              self.line.length) + ' ' + str(
-#                 self.line.points[1].idx) + ' ' + str(self.speed), True, WHITE)
-#
-#         text2 = font.render(str(self.goods[0]) + ' ' + str(self.goods[1]), True, WHITE)
-#         screen.blit(text, (1400, 0))
-#         screen.blit(text2, (1400, 20))
-#         step_x = (self.line.points[1].coordinates[0] - self.line.points[0].coordinates[0]) / self.line.length
-#         step_y = (self.line.points[1].coordinates[1] - self.line.points[0].coordinates[1]) / self.line.length
-#         # self.coordinates[0] = (self.line.points[0].coordinates[0] + self.line.points[1].coordinates[0]) / 2
-#         # self.coordinates[1] = (self.line.points[0].coordinates[1] + self.line.points[1].coordinates[1]) / 2
-#         self.coordinates[0] = self.line.points[0].coordinates[0] + step_x * self.position
-#         self.coordinates[1] = self.line.points[0].coordinates[1] + step_y * self.position
-#         pygame.draw.circle(surface, BLUE, (int(self.coordinates[0]), int(self.coordinates[1])), 5, 0)
-#
-#     def get_possible_lines(self):
-#         return self.line_idx
-#
-#     def update(self, train_dict: dict):
-#         self.goods = (train_dict['goods'], train_dict['goods_capacity'])
-#         self.line_idx = train_dict['line_idx']
-#         self.position = train_dict['position']
-#         self.speed = train_dict['speed']
-#
-#
-# class Dispatcher:
-#     def __init__(self, graph: Graph):
-#         self.graph = graph
-#         self.posts = {1: {}, 2: {}, 3: {}}
-#         self.rem_length = 0
-#         self.train_path = None
-#         self.train_tasks = {}
-#         for idx, post in self.graph.posts.items():
-#             self.posts[post.post.type][post.idx] = post
-#
-#     def get_best_path(self, point_a, point_b, train_lines=None):
-#         lines_list = [[line.idx, line.length, line.get_points()] for line in self.graph.lines.values()]
-#         if train_lines is not None:
-#             lines_list += train_lines
-#         return getOptimalPath(point_a, point_b, lines_list)
-#
-#     def get_path_to_point(self, point_idx, train_idx):
-#         lines = [[-1, self.graph.trains[train_idx].position,
-#                   [self.graph.trains[train_idx].line.points[0].idx, 0]],
-#                  [-2, self.graph.trains[train_idx].line.length - self.graph.trains[train_idx].position,
-#                   [0, self.graph.trains[train_idx].line.points[1].idx]]]
-#         best_path = self.get_best_path(0, point_idx, lines)
-#         best_path[0][0] = self.graph.trains[train_idx].line.idx
-#         return best_path
-#
-#     def move_train_to_point(self, point_idx, train_idx, connector):
-#         if self.train_path is None:
-#             self.train_path = self.get_path_to_point(point_idx, train_idx)
-#             next_line = self.train_path[0]
-#             self.rem_length = self.graph.lines[next_line[0]].length - self.graph.trains[train_idx].position \
-#                 if self.train_path[0][1] == 1 else self.graph.trains[train_idx].position
-#             if self.rem_length != 0:
-#                 connector.move_train(next_line[0], next_line[1], train_idx)
-#
-#             self.train_path.pop(0)
-#
-#         if self.rem_length == 0:
-#             if self.train_path:
-#                 next_line = self.train_path.pop(0)
-#                 connector.move_train(next_line[0], next_line[1], train_idx)
-#                 self.rem_length = self.graph.lines[next_line[0]].length
-#
-#             else:
-#                 self.train_path = None
-#                 return 1
-#         self.rem_length -= 1
-#
-#     def do_tasks(self, connector):
-#         for train in self.train_tasks.keys():
-#             if not self.train_tasks[train]:
-#                 pass
-#             else:
-#                 self.train_path = self.train_tasks[train][0]
-#                 if self.move_train_to_point(self.train_tasks[train][0], train, connector) == 1:
-#                     self.train_tasks[train].pop(0)
-#
-#     def get_min_path(self, post_type, start, train_idx):
-#         paths = {}
-#         distances = {}
-#         for idx, post in self.posts[post_type].items():
-#             paths[idx] = self.get_best_path(start, idx)
-#             distances[idx] = 0
-#             for line in paths[idx]:
-#                 line.append(self.graph.lines[line[0]].length)
-#                 distances[idx] += line[2]
-#         min_post = min(distances, key=distances.get)
-#         if train_idx not in self.train_tasks:
-#             self.train_tasks[train_idx] = []
-#         # first_length = self.graph.trains[train_idx].line.length - self.graph.trains[train_idx].position \
-#         #     if paths[min_post][0][1] == 1 else self.graph.trains[train_idx].position
-#         path = Path(paths[min_post], start, min_post, distances[min_post])
-#         self.train_tasks[train_idx].append(paths[min_post])
-#         self.train_tasks[train_idx].append(self.get_best_path(min_post, start))
-#
-#     def get_armor(self, start):
-#         self.get_min_path(3, start, 1)
-#
-#     def get_products(self, start):
-#         self.get_min_path(2, start, 1)
-#
-#     def assign_tasks(self):
-#         self.get_armor(self.graph.home.idx)
-#         print(self.train_tasks)
-#
-#
-# class Path:
-#     def __init__(self, path, start, end, length):
-#         self.path = path
-#         self.end = end
-#         self.length = length
-#
-#     def create_path(self):
-#         pass
+class Train:
+    def __init__(self, train_dict: dict):
+        self.idx = train_dict['idx']
+        self.goods = (train_dict['goods'], train_dict['goods_capacity'])
+        self.line_idx = train_dict['line_idx']
+        self.position = train_dict['position']
+        self.speed = train_dict['speed']
+        self.line = None
+        self.coordinates = [0, 0]
+        self.font = pygame.font.SysFont('arial', 20)
+        self.goods_type = train_dict['goods_type']
+
+    def set_line(self, line: Line):
+        self.line = line
+
+    def draw(self, screen, surface):
+        pygame.draw.rect(screen, BLACK, (1400, 0, 100, 100), 0)
+        info = {'current line': [str(self.line_idx)], 'position': [self.position, self.line.length],
+                'type of goods': [str(self.goods_type)], 'goods': self.goods}
+        i = 0
+        for key, value in info.items():
+            if len(value) == 1:
+                text2 = self.font.render(value[0], True, WHITE)
+            else:
+                text2 = self.font.render('{0}/{1}'.format(value[0], value[1]), True, WHITE)
+            text1 = self.font.render(key, True, WHITE)
+            screen.blit(text1, (1300, i))
+            screen.blit(text2, (1500, i))
+            i += 30
+        step_x = (self.line.points[1].coordinates[0] - self.line.points[0].coordinates[0]) / self.line.length
+        step_y = (self.line.points[1].coordinates[1] - self.line.points[0].coordinates[1]) / self.line.length
+        self.coordinates[0] = self.line.points[0].coordinates[0] + step_x * self.position
+        self.coordinates[1] = self.line.points[0].coordinates[1] + step_y * self.position
+        pygame.draw.rect(surface, (255, 0, 255), (int(self.coordinates[0])-8, int(self.coordinates[1])-8, 16, 16), 1)
+
+    def get_possible_lines(self):
+        return self.line_idx
+
+    def update(self, train_dict: dict):
+        self.goods = (train_dict['goods'], train_dict['goods_capacity'])
+        self.line_idx = train_dict['line_idx']
+        self.position = train_dict['position']
+        self.speed = train_dict['speed']
+        self.goods_type = train_dict['goods_type']
+
+
+class Dispatcher:
+    def __init__(self, graph: Graph, connector):
+        self.graph = graph
+        self.posts = {1: {}, 2: {}, 3: {}}
+        self.rem_length = 0
+        self.train_path = None
+        self.best_paths = {}
+        self.train_tasks = {}
+        self.income_losses = {2: [], 3: []}
+        self.post_rating = {2: [], 3: []}
+        self.home = graph.home
+        self.connector = connector
+        for idx, post in self.graph.posts.items():
+            self.posts[post.post.type][post.idx] = post
+
+    def get_best_path(self, point_a, point_b, train_lines=None, excluded_points=None):
+        """
+        Finds best way between two points
+        :param point_a: start point
+        :param point_b: finish point
+        :param train_lines: if not None than start point is a train
+        :param excluded_points: points to be removed from the path
+        :return: list representation of the path
+        """
+        lines_list = []
+        for line in self.graph.lines.values():
+            points = line.get_points()
+            if excluded_points is None or (points[0] not in excluded_points.keys() and points[1] not in excluded_points.keys()):
+                lines_list.append([line.idx, line.length, line.get_points()])
+        if train_lines is not None:
+            lines_list += train_lines
+        return getOptimalPath(point_a, point_b, lines_list)
+
+    def get_path_to_point(self, point_idx, train_idx):
+        """
+        Finds optimal path from current train position to a point
+        :param point_idx: destination point
+        :param train_idx: train
+        :return: a path
+        """
+        lines = [[-1, self.graph.trains[train_idx].position,
+                  [self.graph.trains[train_idx].line.points[0].idx, 0]],
+                 [-2, self.graph.trains[train_idx].line.length - self.graph.trains[train_idx].position,
+                  [0, self.graph.trains[train_idx].line.points[1].idx]]]
+        best_path = self.get_best_path(0, point_idx, lines)
+        best_path[0][0] = self.graph.trains[train_idx].line.idx
+        return best_path
+
+    def do_tasks(self):
+        """
+        Does tasks for all trains and assigns new if all tasks are done
+        :return: None
+        """
+        for train, paths in self.train_tasks.items():
+            if paths[0].move(train) is False:
+                paths.pop(0)
+                if paths:
+                    paths[0].move(train)
+                else:
+                    self.assign_tasks()
+                    self.do_tasks()
+
+    def get_paths(self, post_type, start):
+        """
+        Creates the paths to posts and the returning ones
+        :param post_type: post type
+        :param start: start point (home town)
+        :return: None
+        """
+        comeback_distances = []
+        for idx, post in self.posts[post_type].items():
+            excluded_points = self.posts[2] if post_type == 3 else self.posts[3]
+            path = self.get_best_path(start, idx, excluded_points=excluded_points)
+            distance = 0
+            for line in path:
+                line.append(self.graph.lines[line[0]].length)
+                distance += line[2]
+            path_back = self.get_best_path(idx, start)
+            distance_back = 0
+            for line in path_back:
+                line.append(self.graph.lines[line[0]].length)
+                distance_back += line[2]
+            self.best_paths[(start, idx)] = Path(path, start, idx, distance, self.connector)
+            self.best_paths[(idx, start)] = Path(path_back, idx, start, distance_back, self.connector)
+            comeback_distances.append((idx, distance+distance_back))
+        comeback_distances.sort(key=lambda full_distance: full_distance[1])
+        self.post_rating[post_type] = comeback_distances
+
+    def count_income(self, post_type, train_idx):
+        """
+        Creates a list of income losses if specific train will drive to specific post type
+        :param post_type: type of the post
+        :param train_idx: train idx
+        :return: None
+        """
+        for post_pair in self.post_rating[post_type]:
+            turns = post_pair[1]
+            if self.posts[post_type][post_pair[0]].post.product[1] >= self.graph.trains[train_idx].goods[1]:
+                estimated_income = self.graph.trains[train_idx].goods[1]
+            else:
+                pass
+            income = self.estimated_consumption(turns) - estimated_income
+            self.income_losses[post_type].append((post_pair[0], income))
+        self.income_losses[post_type].sort(key=lambda loss: loss[1])
+
+    def estimated_consumption(self, turns):
+        """
+        Function to estimate the consumption of products
+        :param turns: number of turns to estimate
+        :return: consumed products
+        """
+        population = 1
+        consumption = turns * population
+        return consumption
+
+    # def get_armor(self, start):
+    #     self.get_min_path(3, start, 1)
+
+    def get_products(self):
+        """
+        Creates the most optimal task for one train to deliver products
+        :return: None
+        """
+        self.train_tasks[1] = [self.best_paths[(self.home.idx, self.income_losses[2][0][0])].copy(),
+                               self.best_paths[(self.income_losses[2][0][0], self.home.idx)].copy()]
+
+    def prepare(self):
+        """
+        Makes preparations of the dispatcher for example optimal paths
+        :return: None
+        """
+        self.get_paths(2, self.graph.home.idx)
+        # self.get_paths(3, self.graph.home.idx)
+        self.count_income(2, 1)
+        self.assign_tasks()
+
+    def assign_tasks(self):
+        """
+        THis function will choose what is optimal to do in the future
+        :return: None
+        """
+        self.get_products()
+
+
+class Path:
+    def __init__(self, path, start, end, length, connector):
+        self.path = path
+        self.start = start
+        self.end = end
+        self.length = length
+        self.connector = connector
+        self.current_track = [0, 0, 0]
+        self.current_track_idx = 0
+
+    def copy(self):
+        return Path(self.path, self.start, self.end, self.length, self.connector)
+
+    def move(self, train_idx):
+
+        if self.current_track[2] == 0:
+            if self.current_track_idx == len(self.path):
+                return False
+            self.current_track = list(self.path[self.current_track_idx])
+            self.connector.move_train(self.current_track[0], self.current_track[1], train_idx)
+            self.current_track_idx += 1
+
+        self.current_track[2] -= 1
+        return True
+
