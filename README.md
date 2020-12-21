@@ -7,7 +7,7 @@
 ### Илья Онищук (el0ny)
 
 <br/><br/>
-## Stage 1
+## Stage 2
 In order to run the program you need python 3.8+ and gcc or g++.
 On Linux you also need to execute the following command:
 
@@ -17,10 +17,10 @@ After that you can build the cpp module on both Linux and Windows by cd to the *
 
 >python setup.py install
 
-Now you can run the main.py from command line by passing it a path to the json file. For example:
+Now you can run main.py from command line:
 
->python main.py files/big_graph.json
+>python main.py
 
 You can run an executable file in "**other**" directory based on your system. 
 
-Use mouse wheel to zoom and right mouse to drag the map. You can select points on the map to see their id.
+Use mouse wheel to zoom and right mouse to drag the map. You can select points and posts on the map to see their information.
