@@ -1,15 +1,15 @@
 """
-Disclaimer:
-This project has a lot of commented lines of the next steps. In the next prs they will be uncommented
-
 This this the starting function of the project. Here the Game class is created and is being run.
 """
-
+import threading
+import time
 import pygame
 import sys
 
-from py_modules.graph import Post, Train, Dispatcher
-from py_modules.make_planar import create_graph
+from py_modules.post import Post
+from py_modules.train import Train
+from py_modules.dispatcher import Dispatcher
+from py_modules.make_planar import create_graph_from_layer
 from py_modules.connector import Connector
 
 screen_width = 1600
@@ -32,6 +32,11 @@ class Game:
         self.dragging = False
         self.running = True
         self.clock = pygame.time.Clock()
+        self.disp = None
+        self.posts = {}
+        self.trains = {}
+        self.connector = None
+        self.player_idx = None
 
         adjust_win_resolution()
         pygame.display.init()
@@ -39,91 +44,112 @@ class Game:
         pygame.font.init()
         self.image = pygame.Surface([900, 900])
 
+    def update_function(self):
+        # with open('output.txt', 'a') as f:
+        running = True
+        while self.graph.tick < 500 and running:
+
+            start = time.time()
+            info = self.connector.get_info()
+            self.update_map(self.posts, info)
+            self.graph.tick += 1
+            self.disp.do_tasks()
+            for key, train in self.trains.items():
+                train.update(info['trains'][key - 1])
+            self.graph.rating = info['ratings'][self.player_idx]['rating']
+            if self.graph.tick % 4 == 1:
+                if self.selected is not None:
+                    self.selected.draw(self.image, self.sc)
+                self.update_screen(self.graph)
+            if time.time()-start > 0.9:
+                print(time.time()-start)
+            else:
+                self.connector.next_turn()
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                    break
+
     def run(self):
         try:
-            connector = Connector()
+            self.connector = Connector()
         except Exception as e:
-            print("something's wrong with the server. Exception is %s" % (e))
+            print("something's wrong with the server. Exception is %s" % e)
             return
-        player_info, zero_layer_info, first_layer_info = connector.get_map()
+        self.connector.login('team', game_name='Game of the Year')
+        player_info, zero_layer_info, first_layer_info, ten_layer_info = self.connector.get_map()
         raw_graph = zero_layer_info
-        points, lines, subgraph = create_graph(raw_graph)
-
-        subgraph.home = points[player_info['home']['idx']]
+        self.player_idx = player_info['idx']
+        points, lines, self.graph = create_graph_from_layer(raw_graph, ten_layer_info, player_info['home']['idx'])
+        self.graph.home = points[player_info['home']['idx']]
         points[player_info['home']['idx']].home = True
-        posts = {}
+        points[player_info['home']['idx']].selected = True
         for post in first_layer_info['posts']:
             points[post['point_idx']].post = Post(post)
-            posts[post['idx']] = points[post['point_idx']]
-        subgraph.posts = posts
-
-        trains = {train['idx']: Train(train) for train in player_info['trains']}
-        subgraph.trains = trains
-        for train in trains.values():
+            self.posts[post['idx']] = points[post['point_idx']]
+        self.graph.posts = self.posts
+        self.trains = {train['idx']: Train(train) for train in player_info['trains']}
+        self.graph.trains = self.trains
+        for train in self.trains.values():
             train.set_line(lines[train.line_idx])
-        disp = Dispatcher(subgraph, connector)
-        disp.prepare()
-        while self.running:
-            self.clock.tick(120)
-            for event in pygame.event.get():
-                if event.type == pygame.KEYDOWN:
-                #     if event.key == pygame.K_u:
-                #         connector.upgrade()
-                    if event.key == pygame.K_SPACE:
-                        disp.do_tasks()
-                        info = connector.get_info()
-                        self.update_map(posts, info)
-                #         subgraph.rating = info['ratings'][player_idx]['rating']
-                        if self.selected is not None:
-                            self.selected.draw(self.image, self.sc)
-                        for train in trains.values():
-                            train.update(info['trains'][0])
+        self.disp = Dispatcher(self.graph, self.connector)
+        self.disp.prepare()
+        self.update_function()
+        print(self.graph.rating)
+        self.connector.close_conn()
+        # thread.start()
+        # while self.running:
+        #     self.clock.tick(60)
+            # for event in pygame.event.get():
+            #     if event.type == pygame.QUIT:
+            #         self.connector.close_conn()
+            #         self.running = False
+            #     if event.type == pygame.MOUSEBUTTONDOWN:
+            #         if event.button == 1:
+            #             if self.selected is not None:
+            #                 self.selected.draw(self.image, self.sc)
+            #             self.selected = self.mouse_click(event.pos, points)
+            #             self.sc.blit(self.image, (100, 0))
+            #             pygame.display.update()
+            #         elif event.button == 3:
+            #             old_mouse_x, old_mouse_y = event.pos
+            #             self.dragging = True
+            #         elif event.button == 4:
+            #             self.graph.zoom(0.1)
+            #         elif event.button == 5:
+            #             self.graph.zoom(-0.1)
+            #         self.update_screen(self.graph)
+            #     elif event.type == pygame.MOUSEBUTTONUP:
+            #         if event.button == 3:
+            #             self.dragging = False
+            #     elif event.type == pygame.MOUSEMOTION:
+            #         if self.dragging:
+            #             mouse_x, mouse_y = event.pos
+            #             self.graph.move(mouse_x - old_mouse_x, mouse_y - old_mouse_y)
+            #             old_mouse_x, old_mouse_y = event.pos
+            #         self.update_screen(self.graph)
 
-                if event.type == pygame.QUIT:
-                    connector.close_conn()
-                    self.running = False
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    if event.button == 1:
-                        if self.selected is not None:
-                            self.selected.draw(self.image, self.sc)
-                        self.selected = self.mouse_click(event.pos, points)
-                        self.sc.blit(self.image, (100, 0))
-                        pygame.display.update()
-                    elif event.button == 3:
-                        old_mouse_x, old_mouse_y = event.pos
-                        self.dragging = True
-                    elif event.button == 4:
-                        subgraph.zoom(0.1)
-                    elif event.button == 5:
-                        subgraph.zoom(-0.1)
-                elif event.type == pygame.MOUSEBUTTONUP:
-                    if event.button == 3:
-                        self.dragging = False
-                elif event.type == pygame.MOUSEMOTION:
-                    if self.dragging:
-                        mouse_x, mouse_y = event.pos
-                        subgraph.move(mouse_x - old_mouse_x, mouse_y - old_mouse_y)
-                        old_mouse_x, old_mouse_y = event.pos
-                self.update_screen(subgraph)
-
-    def mouse_click(self, mouse_pos: tuple, points: dict):
-        """
-        Checks if any point was selected
-        :param mouse_pos: position of the mouse
-        :param points: a dict of points
-        :return: Point that was selected
-        """
-        if self.selected is not None:
-            self.selected.selected = False
-        if 100 < mouse_pos[0] < 1000:
-            for point in points.values():
-                if point.coordinates[0] - 7 < mouse_pos[0] - 100 < point.coordinates[0] + 7:
-                    if point.coordinates[1] - 7 < mouse_pos[1] < point.coordinates[1] + 7:
-                        point.selected = True
-                        return point
-        return None
+    # def mouse_click(self, mouse_pos: tuple, points: dict):
+    #     """
+    #     Checks if any point was selected
+    #     :param mouse_pos: position of the mouse
+    #     :param points: a dict of points
+    #     :return: Point that was selected
+    #     """
+    #     if self.selected is not None:
+    #         self.selected.selected = False
+    #     if 100 < mouse_pos[0] < 1000:
+    #         for point in points.values():
+    #             if point.coordinates[0] - 7 < mouse_pos[0] - 100 < point.coordinates[0] + 7:
+    #                 if point.coordinates[1] - 7 < mouse_pos[1] < point.coordinates[1] + 7:
+    #                     point.selected = True
+    #                     return point
+    #     return None
 
     def update_map(self, posts, info):
+        # for event in info['posts'][0]['events']:
+        #     print(event)
+        #     print(self.graph.tick)
         for post in info['posts']:
             posts[post['idx']].post.update(post)
 

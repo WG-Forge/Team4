@@ -7,8 +7,8 @@
 ### Илья Онищук (el0ny)
 
 <br/><br/>
-## Stage 3
-This stage has one train that can bring products to the hometown.
+## Stage 4-5
+This stage has many trains witch can bring products and armor to the hometown and make upgrades. 
 
 
 In order to run the program you need python 3.8+ and gcc or g++.
@@ -26,6 +26,4 @@ Now you can run main.py from command line:
 
 You can run an executable file in "**other**" directory based on your system. 
 
-Use mouse wheel to zoom and right mouse to drag the map. 
-You can select points and posts on the map to see their information. 
-Now you can click on the space button to initiate next game turn.
+In order to lower latency the map is now not interactive. It updates every 4 turns.
