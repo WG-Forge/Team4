@@ -26,24 +26,24 @@ class Connector:
             while len(data_bytes) < length:
                 packet = self.client_socket.recv(length - len(data_bytes))
                 data_bytes.extend(packet)
-        elif action == 4:
-            self.send_message(code, message)
+        # elif action == 4:
+        #     return 4
         else:
             # print(message)
-            return None
+            return 4
         data = data_bytes.decode('utf-8')
         if data != '':
             data_dict = json.loads(data)
 
         return data_dict
 
-    def login(self,  player_name, game_name=None):
+    def login(self,  player_name, game_name=None, number=1):
         name = '}'
         if game_name is not None:
 
             name = ', "game": "%s"}' % game_name
 
-        message = '{"name": "%s", "num_turns": 500, "num_players": 1' % player_name
+        message = '{"name": "%s", "num_turns": 500, "num_players": %s' % (player_name, number)
         message += name
         login_info = self.send_message(1, message)
         return login_info
@@ -75,7 +75,7 @@ class Connector:
 
     def upgrade(self, upgrade_dict):
         message = '{"posts":%s,"trains":%s}' % (str(upgrade_dict['posts']), str(upgrade_dict['trains']))
-        self.send_message(4, message)
+        return self.send_message(4, message)
 
     def close_conn(self):
         self.client_socket.close()

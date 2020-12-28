@@ -27,7 +27,7 @@ def adjust_win_resolution():
 
 
 class Game:
-    def __init__(self):
+    def __init__(self, name, game, number):
         self.selected = None
         self.dragging = False
         self.running = True
@@ -37,6 +37,10 @@ class Game:
         self.trains = {}
         self.connector = None
         self.player_idx = None
+        self.name = name
+        self.game = game
+        self.number = number
+        self.enemy_trains = {}
 
         adjust_win_resolution()
         pygame.display.init()
@@ -45,22 +49,40 @@ class Game:
         self.image = pygame.Surface([900, 900])
 
     def update_function(self):
-        # with open('output.txt', 'a') as f:
+
         running = True
-        while self.graph.tick < 500 and running:
+        while running:
+            for game in self.connector.get_game()['games']:
+                if game['name'] == self.game and game['state'] == 2:
+                    running = False
+        running = True
+        while self.graph.tick <= 500 and running:
 
             start = time.time()
             info = self.connector.get_info()
-            self.update_map(self.posts, info)
-            self.graph.tick += 1
-            self.disp.do_tasks()
+            # if not self.enemy_trains:
+            #     self.enemy_trains = {train['idx']: Train(train) for train in info['trains'] if
+            #                          train['idx'] not in self.trains}
+            #     self.graph.enemy_trains = self.enemy_trains
+            self.graph.rating = info['ratings'][self.player_idx]['rating']
+            if info != 4:
+                self.update_map(self.posts, info)
+            else:
+                continue
+
             for key, train in self.trains.items():
                 train.update(info['trains'][key - 1])
-            self.graph.rating = info['ratings'][self.player_idx]['rating']
-            if self.graph.tick % 4 == 1:
+            # for key, train in self.enemy_trains.items():
+            #     train.update(info['trains'][key - 1])
+            if self.graph.tick % 1 == 0:
                 if self.selected is not None:
                     self.selected.draw(self.image, self.sc)
                 self.update_screen(self.graph)
+
+            if not self.disp.do_tasks():
+               continue
+            self.graph.tick += 1
+
             if time.time()-start > 0.9:
                 print(time.time()-start)
             else:
@@ -76,7 +98,7 @@ class Game:
         except Exception as e:
             print("something's wrong with the server. Exception is %s" % e)
             return
-        self.connector.login('team', game_name='Game of the Year')
+        self.connector.login(self.name, game_name=self.game, number=self.number)
         player_info, zero_layer_info, first_layer_info, ten_layer_info = self.connector.get_map()
         raw_graph = zero_layer_info
         self.player_idx = player_info['idx']
@@ -89,7 +111,9 @@ class Game:
             self.posts[post['idx']] = points[post['point_idx']]
         self.graph.posts = self.posts
         self.trains = {train['idx']: Train(train) for train in player_info['trains']}
+
         self.graph.trains = self.trains
+
         for train in self.trains.values():
             train.set_line(lines[train.line_idx])
         self.disp = Dispatcher(self.graph, self.connector)
@@ -147,9 +171,11 @@ class Game:
     #     return None
 
     def update_map(self, posts, info):
-        # for event in info['posts'][0]['events']:
-        #     print(event)
-        #     print(self.graph.tick)
+        for event in info['posts'][0]['events']:
+            if event['type'] == 4:
+                self.disp.make_prediction(event['refugees_number']*2)
+            print(event)
+            print(self.graph.tick)
         for post in info['posts']:
             posts[post['idx']].post.update(post)
 
@@ -167,7 +193,11 @@ class Game:
 
 
 def main():
-    game = Game()
+    name = sys.argv[1]
+    game = sys.argv[2]
+    number = sys.argv[3]
+
+    game = Game(name, game, number)
     game.run()
 
 

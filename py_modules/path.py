@@ -5,6 +5,7 @@ class Path:
     def __init__(self, path, length, connector, stop_dict=None):
         self.path = path
         self.length = length
+        self.income = 0
         self.connector = connector
         self.current_track = [path[0][0], path[0][1], 0]  # line_id, direction, length
         self.current_track_idx = 0
@@ -16,7 +17,7 @@ class Path:
         return Path(self.path, self.length, self.connector, stop_dict=self.stop_dict)
 
     def should_stop(self, train_idx):
-        if self.tick in self.stop_dict:
+        if self.tick in self.stop_dict and self.stop_dict[self.tick] > 0:
             self.connector.move_train(self.current_track[0], 0, train_idx)
             self.stop_dict[self.tick] -= 1
             if self.stop_dict[self.tick] == 0:
@@ -25,11 +26,16 @@ class Path:
             return True
         return False
 
+    def stop(self, train_idx):
+        self.connector.move_train(self.current_track[0], 0, train_idx)
+
     def move(self, train_idx):
         if not self.should_stop(train_idx):
             if self.current_track[2] <= 0:
+                # print(f'!!!!!!!!!!!!!!!   {self.current_track_idx}')
                 self.current_track = list(self.path[self.current_track_idx])
-                self.connector.move_train(self.current_track[0], self.current_track[1], train_idx)
+                if self.connector.move_train(self.current_track[0], self.current_track[1], train_idx) == 4:
+                    return 4
                 self.current_track_idx += 1
             elif self.resume:
                 self.connector.move_train(self.current_track[0], self.current_track[1], train_idx)

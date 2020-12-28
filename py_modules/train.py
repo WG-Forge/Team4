@@ -16,6 +16,9 @@ class Train:
         self.font = pygame.font.SysFont('arial', 20)
         self.goods_type = train_dict['goods_type']
         self.upgrade_cost = train_dict['next_level_price']
+        self.crash_timer = 0
+        self.enemy = False
+        self.loading = False
 
     def set_line(self, line: Line):
         self.line = line
@@ -48,9 +51,16 @@ class Train:
                           16), 1)
 
     def update(self, train_dict: dict):
+        if train_dict['goods'] > self.goods[0]:
+            self.loading = True
+        else:
+            self.loading = False
         self.goods = (train_dict['goods'], train_dict['goods_capacity'])
         self.line_idx = train_dict['line_idx']
         self.position = train_dict['position']
         self.speed = train_dict['speed']
         self.goods_type = train_dict['goods_type']
         self.upgrade_cost = train_dict['next_level_price']
+        if train_dict['events']:
+            self.crash_timer = train_dict['cooldown']
+            print('crash')

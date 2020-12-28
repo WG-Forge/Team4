@@ -17,6 +17,7 @@ class Graph:
         self.posts = {}
         self.home = None
         self.tick = 0
+        self.enemy_trains = {}
         if points is not None:
             self.points = points
         if lines is not None:

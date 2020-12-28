@@ -4,6 +4,7 @@ class Post:
         self.idx = post_dict['point_idx']
         self.post_idx = post_dict['idx']
         self.type = post_dict['type']
+        self.dead_people = 0
         if self.type == 1:
             # self.image_path = "pictures/city.png"
             self.armor = (post_dict['armor'], post_dict['armor_capacity'])
@@ -50,6 +51,7 @@ class Post:
         if self.type == 1:
             self.armor = (post_dict['armor'], post_dict['armor_capacity'])
             if post_dict['population'] < self.population[0]:
+                self.dead_people +=1
                 print('{0}/{1} people died from {2} food'.format(self.population[0]-post_dict['population'], self.population[0], self.product[0]))
             self.population = (post_dict['population'], post_dict['population_capacity'])
             self.product = (post_dict['product'], post_dict['product_capacity'])
